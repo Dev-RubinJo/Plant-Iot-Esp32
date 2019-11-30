@@ -74,9 +74,9 @@ void printLocalTime() {
     int mm = timeinfo.tm_min;
     int hh = timeinfo.tm_hour;
     int week = timeinfo.tm_wday;
-    if(mm == 40) {
+    if(hh == 7) {
       redLed = true;
-    } else if(mm == 41) {
+    } else if(hh == 18) {
       redLed = false;
     }
     Serial.print(week); Serial.print(". ");
