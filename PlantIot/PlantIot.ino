@@ -15,8 +15,8 @@ int soilSensor = 4;
 #define DHTTYPE DHT11 // DHT 11
 
 // plant led
-const int plantLedRed = 10;
-const int plantLedBlue = 11;
+const int plantLedRed = 17;
+const int plantLedBlue = 5;
 
 boolean redLed = false;
 boolean blueLed = false;
@@ -105,6 +105,7 @@ char HOST_ADDRESS[]="a2iilqapybb349-ats.iot.ap-northeast-2.amazonaws.com";
 char CLIENT_ID[]= "iotService";
 char TOPIC_NAME_update[]= "$aws/things/iotService/shadow/update";
 char TOPIC_NAME_delta[]= "$aws/things/iotService/shadow/update/delta";
+char TOPIC_NAME_get[]= "$aws/things/iotService/shadow/get";
 
 int status = WL_IDLE_STATUS;
 int tick = 0, msgCount = 0, msgReceived = 0;
@@ -141,9 +142,12 @@ void setup() {
     delay(1000);
     
     if(0==hornbill.subscribe(TOPIC_NAME_delta,callBackDelta))
+//    if(0==hornbill.subscribe(TOPIC_NAME_get,callBackDelta))
       Serial.println("Subscribe(../update/delta) Successfull");
+//      Serial.println("Subscribe(../get) Successfull");
     else {
       Serial.println("Subscribe(../update/delta) Failed, Check the Thing Name, Certificates");
+//      Serial.println("Subscribe(../get) Failed, Check the Thing Name, Certificates");
       while(1);
     }
   }
@@ -157,6 +161,10 @@ void setup() {
   dht.begin(); //Initialize the DHT11 sensor
   pinMode(LEDPIN, OUTPUT);
   pinMode(DHTPIN, INPUT);
+  pinMode(plantLedRed, OUTPUT);
+  pinMode(plantLedBlue, OUTPUT);
+  digitalWrite(plantLedRed, HIGH);
+  digitalWrite(plantLedBlue, HIGH);
   digitalWrite(LEDPIN, LOW);
 }
 
@@ -170,6 +178,23 @@ void loop() {
   }
   printLocalTime();
   Serial.println(redLed);
+  bool red = false;
+  if(redLed || redLedByApp) {
+    red = true;
+  }
+  bool blue = false;
+  if(blueLed || blueLedByApp) {
+    blue = true;
+  }
+  if(red && blue) {
+    digitalWrite(plantLedRed, HIGH);
+    digitalWrite(plantLedBlue, HIGH);
+    Serial.println("test");
+  } else if(!red && !blue) {
+    digitalWrite(plantLedRed, LOW);
+    digitalWrite(plantLedBlue, LOW);
+    Serial.println("nttest");
+  }
   
   
   // at first, handle subscribe messages..
@@ -189,6 +214,11 @@ void loop() {
     // ex) {"version":63,"timestamp":1573803485,"state":{"led":"OFF"},
     // "metadata":{"led":{"timestamp":1573803485}}}
     JsonObject state = msg["state"];
+//    Serial.print("State");
+//    Serial.println(state);
+//    JsonObject report = state["reported"];
+//    Serial.print("Report");
+//    Serial.println(report);
     String led = state["led"];
     if (led.equals("ON")) // turn ON
       led_state = true;
@@ -196,7 +226,17 @@ void loop() {
       led_state = false;
     else { // invalid delta
       Serial.println("Invalid ../delta message..");
-      while (1);
+    }
+    String plantLed = state["plantLed"];
+    Serial.println(plantLed);
+    if(plantLed.equals("ON")) {
+      redLedByApp = true;
+      blueLedByApp = true;
+    } else if(plantLed.equals("OFF")) {
+      redLedByApp = false;
+      blueLedByApp = false;
+    }else { // invalid delta
+      Serial.println("Invalid ../delta message..");
     }
     digitalWrite(LEDPIN, led_state);
     
