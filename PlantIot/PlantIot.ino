@@ -228,7 +228,6 @@ void loop() {
       Serial.println("Invalid ../delta message..");
     }
     String plantLed = state["plantLed"];
-    Serial.println(plantLed);
     if(plantLed.equals("ON")) {
       redLedByApp = true;
       blueLedByApp = true;
@@ -265,13 +264,14 @@ void loop() {
   if (isnan(h) || isnan(t) || isnan(f)) {
     Serial.println("Failed to read from DHT sensor!");
     delay(5000);
-  }
-  else {
+  } else {
     // publish report msg
     // { "state": {
     //    "reported": { "temp": nn, "humid": nn, "led": "ON" | "OFF" }
     //    }
     // }
+//    sprintf(payload,"{\"state\":{\"reported\":{\"temp\":%.1f,\"airHumid\":%.1f, \"soilHumid\": %d,\"led\":\"%s\", \"plantLed\": \"%s\"}}}",
+//    t,h,soil,(led_state ? "ON" : "OFF" ), (red && blue ? "ON" : "OFF"));
     sprintf(payload,"{\"state\":{\"reported\":{\"temp\":%.1f,\"airHumid\":%.1f, \"soilHumid\": %d,\"led\":\"%s\"}}}",
     t,h,soil,(led_state ? "ON" : "OFF" ));
     if(hornbill.publish(TOPIC_NAME_update,payload) == 0) { // Publish the message
@@ -282,7 +282,7 @@ void loop() {
       Serial.println(payload);
     }
     
-    // publish the temp and humidity every 5 seconds.
-    vTaskDelay(5000 / portTICK_RATE_MS);
+    // publish the temp and humidity every 1 seconds.
+    vTaskDelay(1000 / portTICK_RATE_MS);
   }
 }
