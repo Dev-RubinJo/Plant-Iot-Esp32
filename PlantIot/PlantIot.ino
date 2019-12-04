@@ -98,9 +98,9 @@ boolean led_state = false;
 //aws
 AWS_IOT hornbill; // AWS_IOT instance
 
-char WIFI_SSID[]="J house";
+char WIFI_SSID[]="U+Net79FB";
 //char WIFI_SSID[]="KAU-Guest";
-char WIFI_PASSWORD[]= "Applecare12!@";
+char WIFI_PASSWORD[]= "114A005145";
 char HOST_ADDRESS[]="a2iilqapybb349-ats.iot.ap-northeast-2.amazonaws.com";
 char CLIENT_ID[]= "iotService";
 char TOPIC_NAME_update[]= "$aws/things/iotService/shadow/update";
