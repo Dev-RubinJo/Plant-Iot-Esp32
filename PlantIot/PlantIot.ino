@@ -10,6 +10,7 @@
 
 #define DHTPIN 22 // what digital pin we're connected to
 int soilSensor = 4;
+int cdsSensor = 36;
 #define LEDPIN 16 // LED
 
 // Uncomment whatever type you're using!
@@ -126,7 +127,7 @@ void callBackDelta(char *topicName, int payloadLen, char *payLoad)
 void setup() {
   Serial.begin(115200);
   delay(2000);
-  while (status != WL_CONNECTED){
+  while (status != WL_CONNECTED){  
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(WIFI_SSID);
     
@@ -254,6 +255,10 @@ void loop() {
       Serial.println(payload);
     }
   }
+
+  int cds = analogRead(cdsSensor);
+  Serial.print("cds LightSeneor: ");
+  Serial.println(cds);
   
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
