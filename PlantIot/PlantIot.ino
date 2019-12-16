@@ -6,10 +6,12 @@
 #include <ArduinoJson.h>
 #include "time.h"
 
+
+
 #include "DHT.h"
 
 #define DHTPIN 22 // what digital pin we're connected to
-int soilSensor = 4;
+int soilSensor = 39;
 int cdsSensor = 36;
 #define LEDPIN 16 // LED
 
@@ -36,6 +38,9 @@ uint8_t s_ss = 45;
 uint16_t s_yy = 2019;
 uint8_t s_MM = 11;
 uint8_t s_dd = 19;
+
+int second = 0;
+int minute = 0;
 
 time_t now;
 time_t prevEpoch;
@@ -76,6 +81,8 @@ void printLocalTime() {
     int mm = timeinfo.tm_min;
     int hh = timeinfo.tm_hour;
     int week = timeinfo.tm_wday;
+    second = ss;
+    minute = mm;
     if(hh == 7) {
       redLed = true;
       blueLed = true;
@@ -102,8 +109,8 @@ boolean led_state = false;
 //aws
 AWS_IOT hornbill; // AWS_IOT instance
 
-//char WIFI_SSID[]="J house";
-char WIFI_SSID[]="KAU-Guest";
+char WIFI_SSID[]="J house";
+//char WIFI_SSID[]="KAU-Guest";
 char WIFI_PASSWORD[]= "Applecare12!@";
 char HOST_ADDRESS[]="a2iilqapybb349-ats.iot.ap-northeast-2.amazonaws.com";
 char CLIENT_ID[]= "iotService";
@@ -132,8 +139,8 @@ void setup() {
     Serial.println(WIFI_SSID);
     
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-//    status = WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    status = WiFi.begin(WIFI_SSID, NULL);
+    status = WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+//    status = WiFi.begin(WIFI_SSID, NULL);
 
     // wait 5 seconds for connection:
     delay(5000);
@@ -173,6 +180,12 @@ void setup() {
 }
 
 void loop() {
+  int cds = analogRead(cdsSensor);
+  int soil = analogRead(soilSensor);
+  Serial.print("cds LightSeneor: ");
+  Serial.println(cds);
+  Serial.println(soil);
+  
   // timeClient Update
   
   if(Serial.available() > 0){
@@ -193,11 +206,11 @@ void loop() {
   if(red && blue) {
     digitalWrite(plantLedRed, HIGH);
     digitalWrite(plantLedBlue, HIGH);
-    Serial.println("test");
+//    Serial.println("test");
   } else if(!red && !blue) {
     digitalWrite(plantLedRed, LOW);
     digitalWrite(plantLedBlue, LOW);
-    Serial.println("nttest");
+//    Serial.println("nttest");
   }
   
   
@@ -229,7 +242,7 @@ void loop() {
     else if (led.equals("OFF")) // turn OFF
       led_state = false;
     else { // invalid delta
-      Serial.println("Invalid ../delta message..");
+      Serial.println("Invalid ../delta message.. Led");
     }
     String plantLed = state["plantLed"];
     if(plantLed.equals("ON")) {
@@ -239,7 +252,7 @@ void loop() {
       redLedByApp = false;
       blueLedByApp = false;
     }else { // invalid delta
-      Serial.println("Invalid ../delta message..");
+      Serial.println("Invalid ../delta message..PlantLed");
     }
     digitalWrite(LEDPIN, led_state);
     
@@ -255,10 +268,6 @@ void loop() {
       Serial.println(payload);
     }
   }
-
-  int cds = analogRead(cdsSensor);
-  Serial.print("cds LightSeneor: ");
-  Serial.println(cds);
   
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
@@ -267,7 +276,7 @@ void loop() {
   float t = dht.readTemperature();
   // Read temperature as Fahrenheit (isFahrenheit = true)
   float f = dht.readTemperature(true);
-  int soil = analogRead(soilSensor);
+  
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t) || isnan(f)) {
     Serial.println("Failed to read from DHT sensor!");
@@ -280,17 +289,42 @@ void loop() {
     // }
 //    sprintf(payload,"{\"state\":{\"reported\":{\"temp\":%.1f,\"airHumid\":%.1f, \"soilHumid\": %d,\"led\":\"%s\", \"plantLed\": \"%s\"}}}",
 //    t,h,soil,(led_state ? "ON" : "OFF" ), (red && blue ? "ON" : "OFF"));
-    sprintf(payload,"{\"state\":{\"reported\":{\"temp\":%.1f,\"airHumid\":%.1f, \"soilHumid\": %d,\"led\":\"%s\"}}}",
-    t,h,soil,(led_state ? "ON" : "OFF" ));
-    if(hornbill.publish(TOPIC_NAME_update,payload) == 0) { // Publish the message
-      Serial.print("Publish Message: ");
-      Serial.println(payload);
-    } else {
-      Serial.print("Publish failed: ");
-      Serial.println(payload);
+    sprintf(payload,"{\"state\":{\"reported\":{\"temp\":%.1f,\"airHumid\":%.1f, \"soilHumid\": %d, \"cds\": %d, \"timeStamp\": %d,\"led\":\"%s\"}}}",
+    t,h,soil, cds, prevEpoch,(led_state ? "ON" : "OFF" ));
+    Serial.print("Message: ");
+    Serial.println(payload);
+//    if(second == 0) {
+    if(t < 15) {// 온도가 너무 낮을 상황이 오기 전에 바로 온풍기를 켤 수 있도록 함
+      if(hornbill.publish(TOPIC_NAME_update,payload) == 0) { // Publish the message
+        Serial.print("Publish Message: ");
+        Serial.println(payload);
+      } else {
+        Serial.print("Publish failed: ");
+        Serial.println(payload);
+      }
+    }
+    if(t > 50) { // 이 상황은 불이 난 상황을 가정하여 집에 이상이 있음을 알림
+      if(hornbill.publish(TOPIC_NAME_update,payload) == 0) { // Publish the message
+        Serial.print("Publish Message: ");
+        Serial.println(payload);
+      } else {
+        Serial.print("Publish failed: ");
+        Serial.println(payload);
+      }
+    }
+    if(minute % 3 == 0 && second == 0) { // 매 3분단위 시간마다 퍼블리시
+      if(hornbill.publish(TOPIC_NAME_update,payload) == 0) { // Publish the message
+        Serial.print("Publish Message: ");
+        Serial.println(payload);
+      } else {
+        if(hornbill.publish(TOPIC_NAME_update,payload) == 0) { // Publish the message
+          Serial.print("REPublish Message: ");
+          Serial.println(payload);
+        }
+      }
     }
     
-    // publish the temp and humidity every 1 seconds.
+    // the temp and humidity every 1 minute.
     vTaskDelay(1000 / portTICK_RATE_MS);
   }
 }
